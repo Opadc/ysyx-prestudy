@@ -1,0 +1,5 @@
+main(){
+    echo "finding all htmls file at $1"
+    find $1 -name '*.html' | xargs zip -r html.zip
+}
+main
