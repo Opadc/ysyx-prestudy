@@ -1,0 +1,25 @@
+RV32I    
+
+PC寄存器的位宽是多少?
+32
+    GPR共有多少个? 每个GPR的位宽是多少?
+32, 32
+    R[0]和sISA的R[0]有什么不同之处?
+R[0] hardcode to zero
+    指令编码的位宽是多少? 指令有多少种基本格式?
+32, 4 R/I/S/U)
+    在指令的基本格式中, 需要多少位来表示一个GPR? 为什么?
+5, 2^5=32
+    add指令的格式具体是什么?
+0000000 rs2 rs1 000 rd 0110011 ADD
+    还有一种基础指令集称为RV32E, 它和RV32I有什么不同?
+ RV32E and RV64E are reduced versions of RV32I and RV64I,
+respectively: the only change is to reduce the number of integer registers to 16
+
+
+add
+0000000 rs2 rs1 000 rd 0110011 ADD
+
+addi
+
+imm[11:0] rs1 000 rd 0010011 ADDI
