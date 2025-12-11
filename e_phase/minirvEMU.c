@@ -7,7 +7,14 @@
 uint32_t PC = 0;
 uint32_t R[GPR_NUMS];
 uint8_t M[RAM_SIZE] = {
-    
+    // 0x01fff537
+    0x37, 0xf5, 0xff, 0x01,
+    // 0x20000593
+    0x93, 0x05, 0x00, 0x20,
+    // 0xF0A5A023
+    0x23, 0xA0, 0xa5, 0xF0,
+    // 0x10002603
+    0x03, 0x26, 0x00, 0x10,
 };
 
 
@@ -22,7 +29,7 @@ void inst_cycle(){
 
     int32_t  imm_i = ((int32_t)inst >> 20);
     uint32_t imm_u = (inst >> 12) << 12;
-    int32_t  imm_s = (((int32_t)inst >> 25) << 6) | ((inst >> 6) & 0x1f) ; 
+    int32_t  imm_s = (((int32_t)inst >> 25) << 5) | ((inst >> 6) & 0x1f) ; 
     uint32_t opcode = (inst) & 0x7f;
 
     uint32_t next_pc = PC+4;
@@ -61,17 +68,23 @@ void inst_cycle(){
             switch(func3){
                 case 0b010:
                     // lw
-                    R[rd] = M[R[rs1] + imm_i];
+                    printf("lw: R[%d] = addr %x \n", rd, R[rs1] + imm_i);
+                    R[rd] = *(uint32_t *)(M + R[rs1] + imm_i);
+                    break;
+                default:
                     break;
             }
+            break;
         case 0b0100011:
             switch(func3){
                 case 0b010:
                     // sw
-                    M[R[rs1] + imm_u] = R[rs2];
+                    printf("sw: %x to R[%d] \n", R[rs1] + imm_s, rs2);
+                    *(uint32_t *)(M + R[rs1] + imm_s) = R[rs2];
                     break;
                     
             }
+            break;
         default:
             // invalid opcode.
             break;
@@ -96,14 +109,19 @@ int main(int argc, char *argv[]){
     case0: 
         lui a0, 0x1fff
         sw a0, 0x100(zero)
-        ld a1, 0x100(zero)
+        lw a1, 0x100(zero)
         a1 == a0 == 0x1fff000
     case1:
         lui a0, 0x1fff
-        lui a1, 0x2    // a1 -> 0x2000
-        sw  a0, 0x1000(zero) 
-        ld  a2, -0x1000(a1)
+        addi a1, 0x200
+        sw  a0, 0x100(zero) 
+        lw  a2, -0x100(a1)
         a0 == a2 == 0x1fff000
-
+    case3:
+        lui a0, 0x1fff
+        addi a1, 0x200
+        sw  a0, -0x100(a1)
+        lw  a2, 0x100(zero)
+        a0 == a2 == 0x1fff000
 
 */
