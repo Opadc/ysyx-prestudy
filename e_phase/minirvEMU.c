@@ -1,20 +1,18 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <assert.h>
 #define GPR_NUMS 16
 #define RAM_SIZE 0x100000
 uint32_t PC = 0;
 uint32_t R[GPR_NUMS];
 uint8_t M[RAM_SIZE] = {
-    // 0x01fff537
-    0x37, 0xf5, 0xff, 0x01,
-    // 0x20000593
-    0x93, 0x05, 0x00, 0x20,
-    // 0xF0A5A023
-    0x23, 0xA0, 0xa5, 0xF0,
-    // 0x10002603
-    0x03, 0x26, 0x00, 0x10,
+    // 0x11200513
+    0x13, 0x05, 0x20, 0x11,
+    // 0x10a00023
+    0x23, 0x00, 0xa0, 0x10,
+    // 0x10004583
+    0x83, 0x45, 0x00, 0x10,
 };
 
 
@@ -71,7 +69,12 @@ void inst_cycle(){
                     printf("lw: R[%d] = addr %x \n", rd, R[rs1] + imm_i);
                     R[rd] = *(uint32_t *)(M + R[rs1] + imm_i);
                     break;
+                case 0b100:
+                    // lbu
+                    printf("lbu: R[%d] = addr %x \n", rd, R[rs1] + imm_i);
+                    R[rd] = M[R[rs1] + imm_i];
                 default:
+                    printf("invalid load\n");
                     break;
             }
             break;
@@ -82,11 +85,19 @@ void inst_cycle(){
                     printf("sw: %x to R[%d] \n", R[rs1] + imm_s, rs2);
                     *(uint32_t *)(M + R[rs1] + imm_s) = R[rs2];
                     break;
-                    
+                case 0b000:
+                    // sb
+                    printf("sb: %x to R[%d] \n", R[rs1] + imm_s, rs2);
+                    M[R[rs1] + imm_s] = (uint8_t)R[rs2];
+                    break;
+                default:
+                    printf("invalid store\n");
             }
             break;
         default:
             // invalid opcode.
+            printf("invalid opcode\n");
+            assert(0);
             break;
         
     }
@@ -95,7 +106,15 @@ void inst_cycle(){
     PC = next_pc;
     
 }
+
+void read_program(char *path){
+
+}
 int main(int argc, char *argv[]){
+
+    if(argc == 2){
+        read_program(argv[1]);
+    }
     while(1){
         inst_cycle();
     }
@@ -123,5 +142,10 @@ int main(int argc, char *argv[]){
         sw  a0, -0x100(a1)
         lw  a2, 0x100(zero)
         a0 == a2 == 0x1fff000
+
+    // test lbu, sb
+        addi a0, zero, 0x0112
+        sb a0, 0x100(zero)
+        lbu a1, 0x100(zero)
 
 */
