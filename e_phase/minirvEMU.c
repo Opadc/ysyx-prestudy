@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 #define GPR_NUMS 16
 #define RAM_SIZE 0x1000000
 uint32_t PC = 0;
@@ -18,7 +19,7 @@ uint8_t M[RAM_SIZE] = {
     0x83, 0x45, 0x00, 0x10,
 };
 
-
+void inst_test();
 
 void inst_cycle(){
 
@@ -31,7 +32,7 @@ void inst_cycle(){
 
     int32_t  imm_i = ((int32_t)inst >> 20);
     uint32_t imm_u = (inst >> 12) << 12;
-    int32_t  imm_s = (((int32_t)inst >> 25) << 5) | ((inst >> 6) & 0x1f) ; 
+    int32_t  imm_s = (((int32_t)inst >> 25) << 5) | ((inst >> 7) & 0x1f) ; 
     uint32_t opcode = (inst) & 0x7f;
 
     uint32_t next_pc = PC+4;
@@ -135,6 +136,8 @@ int main(int argc, char *argv[]){
     uint32_t cycle = 0;
     if(argc == 2){
         read_program(argv[1]);
+    }else{
+        inst_test();
     }
     while(1){
         cycle++;
@@ -174,3 +177,51 @@ int main(int argc, char *argv[]){
         lbu a1, 0x100(zero)
 
 */
+
+void test_lbu(){
+    uint32_t target_addr = 0x100;
+    uint32_t test_inst[] = {
+        // lw a0, 0x100(zero)
+        0x10002503,
+        // lbu a1, 0x100(zero)
+        0x10004583,
+        // lbu a2, 0x101(zero)
+        0x10104603,
+        // lbu a3, 0x102(zero)
+        0x10204683,
+        // lbu a4, 0x103(zero)
+        0x10304703
+    };
+    *(uint32_t *)(M+target_addr) = 0x12345678;
+    memcpy(M, test_inst, sizeof(test_inst));
+}
+void test_sb(){
+    uint32_t target_addr = 0x100;
+    *(uint32_t *)(M+target_addr) = 0x12345678;
+    uint32_t test_inst[] = {
+        // lw a0, 0x100(zero)
+        0x10002503,
+        // addi a1, zero, 0x123456ab
+        0x6ab00593,
+        // sb a1, 0x103(zero)
+        0x10b001a3,
+        // addi a1, zero, 0x123456cd
+        0x6cd00593,
+        // sb a1, 0x102(zero)
+        0x10b00123,
+        // addi a1, zero, 0x123456ef
+        0x6ef00593,
+        // sb a1, 0x101(zero)
+        0x10b000a3,
+        // addi a1, zero, 0x12345690
+        0x69000593,
+        // sb a1, 0x100(zero)
+        0x10b00023
+    };
+    memcpy(M, test_inst, sizeof(test_inst));
+
+}
+void inst_test(){
+    // test_lbu();
+    test_sb();
+}
