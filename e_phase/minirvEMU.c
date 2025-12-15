@@ -2,8 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 #define GPR_NUMS 16
-#define RAM_SIZE 0x100000
+#define RAM_SIZE 0x1000000
 uint32_t PC = 0;
 uint32_t R[GPR_NUMS];
 uint8_t M[RAM_SIZE] = {
@@ -18,6 +21,7 @@ uint8_t M[RAM_SIZE] = {
 
 
 void inst_cycle(){
+
     uint32_t inst =  *(uint32_t*)(M+PC);
     uint32_t rd = (inst >> 7) & 0x1f;
     uint32_t func3 = (inst >> 12) & 0x07;
@@ -31,12 +35,13 @@ void inst_cycle(){
     uint32_t opcode = (inst) & 0x7f;
 
     uint32_t next_pc = PC+4;
-    printf("[PC:%d]", PC);
+
+    printf("[PC:%x]", PC );
     switch(opcode){
         case 0b1100111:
             // jalr
-            printf("jalr: rs1: %d, rd: %d, imm: %d\n", rs1, rd, imm_i);
             next_pc = (uint32_t)((int32_t)R[rs1] + imm_i);
+            printf("jalr: rs1: %d, rd: %d, imm: %d, next_pc: %x\n", rs1, rd, imm_i, next_pc);
             R[rd] = PC+4;
             break;
         case 0b0010011:
@@ -73,6 +78,7 @@ void inst_cycle(){
                     // lbu
                     printf("lbu: R[%d] = addr %x \n", rd, R[rs1] + imm_i);
                     R[rd] = M[R[rs1] + imm_i];
+                    break;
                 default:
                     printf("invalid load\n");
                     break;
@@ -108,15 +114,34 @@ void inst_cycle(){
 }
 
 void read_program(char *path){
+    struct stat st;
+    uint64_t len = 0;
+    int fd = open(path, O_RDONLY);
+    if(fd == -1){
+        perror("inst stream read fail");
+        exit(1);
+    }
+    fstat(fd, &st);
+    len = st.st_size;
+    if(len <= RAM_SIZE){
+        read(fd, M, len);
+    }else{
+        printf("inst stream too big\n");
+        exit(1);
+    }
 
 }
 int main(int argc, char *argv[]){
-
+    uint32_t cycle = 0;
     if(argc == 2){
         read_program(argv[1]);
     }
     while(1){
+        cycle++;
+        printf("cycle %d \n", cycle);
         inst_cycle();
+        if(cycle > 6000)
+            break;
     }
     return 0;
 }
