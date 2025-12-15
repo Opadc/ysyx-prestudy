@@ -19,6 +19,9 @@ uint8_t M[RAM_SIZE] = {
     0x83, 0x45, 0x00, 0x10,
 };
 
+#define INST_ebreak (0x00100073)
+
+int meet_break = 0;
 void inst_test();
 
 void inst_cycle(){
@@ -101,6 +104,11 @@ void inst_cycle(){
                     printf("invalid store\n");
             }
             break;
+        case 0b1110011:
+            // ebreak
+            meet_break = 1;
+            printf("meet ebreak\n");
+            break;
         default:
             // invalid opcode.
             printf("invalid opcode\n");
@@ -114,6 +122,12 @@ void inst_cycle(){
     
 }
 
+void fill_ebreak(){
+    uint32_t *inst_stream = (uint32_t*)M;
+    for(uint32_t i=0; i<RAM_SIZE/sizeof(uint32_t); i++){
+        inst_stream[i] = INST_ebreak;
+    }
+}
 void read_program(char *path){
     struct stat st;
     uint64_t len = 0;
@@ -125,7 +139,9 @@ void read_program(char *path){
     fstat(fd, &st);
     len = st.st_size;
     if(len <= RAM_SIZE){
+        fill_ebreak();
         read(fd, M, len);
+        *(uint32_t*)(M+0x228) = INST_ebreak;
     }else{
         printf("inst stream too big\n");
         exit(1);
@@ -143,8 +159,15 @@ int main(int argc, char *argv[]){
         cycle++;
         printf("cycle %d \n", cycle);
         inst_cycle();
-        if(cycle > 6000)
-            break;
+        if(meet_break){
+            if(R[10] == 0){
+                printf("HIT GOOD TRAP\n");
+                return 0;
+            }else{
+                printf("HIT BAD TRAP a0 == %x\n", R[10]);
+                return 1;
+            }
+        }
     }
     return 0;
 }
