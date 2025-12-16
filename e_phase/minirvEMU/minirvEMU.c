@@ -1,11 +1,14 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+
+#include <am.h>
+#include <klib-macros.h>
+
 #define GPR_NUMS 16
 #define RAM_SIZE 0x1000000
 uint32_t PC = 0;
@@ -18,6 +21,15 @@ uint8_t M[RAM_SIZE] = {
     // 0x10004583
     0x83, 0x45, 0x00, 0x10,
 };
+
+#define FRAME_BUFFER_SIZE (0x40000)
+#define FRAME_BUFFER_WIDTH (256)
+#define FRAME_BUFFER_HEIGHT (256)
+#define FRAME_BUFFER_BASE (0x20000000)
+#define FRAME_BUFFER_LIMIT (FRAME_BUFFER_BASE+FRAME_BUFFER_SIZE)
+uint32_t vga_fb[FRAME_BUFFER_WIDTH*FRAME_BUFFER_HEIGHT];
+
+static_assert(sizeof(vga_fb) == FRAME_BUFFER_SIZE);
 
 #define INST_ebreak (0x00100073)
 
@@ -89,16 +101,27 @@ void inst_cycle(){
             }
             break;
         case 0b0100011:
+            uint32_t addr = R[rs1] + imm_s;
             switch(func3){
                 case 0b010:
                     // sw
-                    printf("sw: %x to R[%d] \n", R[rs1] + imm_s, rs2);
-                    *(uint32_t *)(M + R[rs1] + imm_s) = R[rs2];
+                    printf("sw: %x to R[%d] \n", addr, rs2);
+                    if(addr >= FRAME_BUFFER_BASE && addr < FRAME_BUFFER_LIMIT){
+                        vga_fb[(addr-FRAME_BUFFER_BASE)/4] = R[rs2];
+                    }else{
+                        *(uint32_t *)(M + addr) = R[rs2];
+                    }
+                    
                     break;
                 case 0b000:
                     // sb
-                    printf("sb: %x to R[%d] \n", R[rs1] + imm_s, rs2);
-                    M[R[rs1] + imm_s] = (uint8_t)R[rs2];
+                    printf("sb: %x to R[%d] \n", addr, rs2);
+                    if(addr >= FRAME_BUFFER_BASE && addr < FRAME_BUFFER_LIMIT){
+                        *(uint8_t*)(vga_fb + (addr-FRAME_BUFFER_BASE)/4) = (uint8_t)R[rs2];
+                    }else{
+                        M[addr] = (uint8_t)R[rs2];
+                    }
+                    
                     break;
                 default:
                     printf("invalid store\n");
@@ -111,8 +134,8 @@ void inst_cycle(){
             break;
         default:
             // invalid opcode.
-            printf("invalid opcode\n");
-            assert(0);
+            // printf("invalid opcode\n");
+            panic_on(true, "invalid opcode");
             break;
         
     }
@@ -128,7 +151,7 @@ void fill_ebreak(){
         inst_stream[i] = INST_ebreak;
     }
 }
-void read_program(char *path){
+void read_program(const char *path){
     struct stat st;
     uint64_t len = 0;
     int fd = open(path, O_RDONLY);
@@ -141,17 +164,23 @@ void read_program(char *path){
     if(len <= RAM_SIZE){
         fill_ebreak();
         read(fd, M, len);
-        *(uint32_t*)(M+0x228) = INST_ebreak;
     }else{
         printf("inst stream too big\n");
         exit(1);
     }
 
 }
-int main(int argc, char *argv[]){
+
+void update_vga(){
+    int w =  FRAME_BUFFER_WIDTH;
+    int h =  FRAME_BUFFER_HEIGHT;
+    io_write(AM_GPU_FBDRAW, 0, 0, vga_fb, w, h, true);
+
+}
+int main(const char *args){
     uint32_t cycle = 0;
-    if(argc == 2){
-        read_program(argv[1]);
+    if(args != NULL){
+        read_program(args);
     }else{
         inst_test();
     }
@@ -159,6 +188,7 @@ int main(int argc, char *argv[]){
         cycle++;
         printf("cycle %d \n", cycle);
         inst_cycle();
+        update_vga();
         if(meet_break){
             if(R[10] == 0){
                 printf("HIT GOOD TRAP\n");
