@@ -1,5 +1,17 @@
 module top(
     input clk,
+    input [7:0] i_data,
+    input [2:0] ctrl,
+
+    output [7:0] o_data,
+    output reg o_valid
+);
+    shift_register shift_register0(clk, i_data, ctrl, o_data, o_valid);
+
+endmodule   
+
+module lfsr_test(
+    input clk,
     input [7:0] x,
     input reset,
     output [7:0] y,

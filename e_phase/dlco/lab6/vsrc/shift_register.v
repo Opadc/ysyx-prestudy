@@ -29,7 +29,7 @@ module shift_register(
     
     always @(*) begin
         case(ctrl)
-            3'b000: next_reg0 = 3'b000;     // reset     
+            3'b000: next_reg0 = 8'b000;     // reset     
             3'b001: next_reg0 = i_data;     // load
             3'b010: next_reg0 = { 1'b0, reg0[7:1]};  // logic right
             3'b011: next_reg0 = { reg0[6:0], 1'b0};  // logic left
