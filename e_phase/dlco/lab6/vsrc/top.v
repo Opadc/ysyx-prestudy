@@ -1,12 +1,12 @@
 module top(
-    input clk,
-    input [7:0] i_data,
-    input [2:0] ctrl,
+    input [7:0] din,
+    input [2:0] shamt,
+    input left,
+    input arch,
 
-    output [7:0] o_data,
-    output reg o_valid
+    output [7:0] dout    
 );
-    shift_register shift_register0(clk, i_data, ctrl, o_data, o_valid);
+    barrel_shifter barrel_shifter0(din, shamt, left, arch, dout);
 
 endmodule   
 
