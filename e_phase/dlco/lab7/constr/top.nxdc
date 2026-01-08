@@ -1,0 +1,6 @@
+top=top
+
+clk    (SW0)
+reset  (SW1)
+in     (SW2)
+out    (LD0)
