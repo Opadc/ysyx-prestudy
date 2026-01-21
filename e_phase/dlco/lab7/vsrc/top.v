@@ -1,3 +1,5 @@
+
+
 module top(
     input clk,clrn,ps2_clk,ps2_data,
 
@@ -22,7 +24,32 @@ module top(
     wire [3:0] bcd3;
     wire [3:0] bcd4;
     wire [3:0] bcd5;
+
+    reg [7:0]  last_key;
+    reg [7:0]  counts;
     
+    reg [7:0]  scancode_data;
+    scancode scancode0(data, scancode_data);
+
+    wire counts_add;
+    assign counts_add = ~nextdata_n && ready;
+
+    always @(posedge clk) begin
+        if(~clrn) begin
+            counts <= 8'd0;
+            last_key <= 8'd0;
+        end
+        else if(counts_add) begin
+            $display("data >>> %x", data);
+            if(data == 8'hf0)
+                counts <= counts;
+            else
+                counts <= counts + ((buffer[0] != data) ? 8'd1 : 8'd0);
+        end
+    end
+
+
+
     ps2_keyboard ps2_keyboard0(clk,clrn,ps2_clk,ps2_data,data,ready,nextdata_n,overflow,sampling);
 
     //  t1   t2   t3           t4
@@ -31,8 +58,8 @@ module top(
 
 
     byte2bcd byte2bcd0(buffer[0], bcd0, bcd1);
-    byte2bcd byte2bcd1(buffer[1], bcd2, bcd3);
-    byte2bcd byte2bcd2(buffer[2], bcd4, bcd5);
+    byte2bcd byte2bcd1(scancode_data, bcd2, bcd3);
+    byte2bcd byte2bcd2(counts, bcd4, bcd5);
     bcd7seg bcd7seg0(bcd0, seg0);
     bcd7seg bcd7seg1(bcd1, seg1);
     bcd7seg bcd7seg2(bcd2, seg2);
