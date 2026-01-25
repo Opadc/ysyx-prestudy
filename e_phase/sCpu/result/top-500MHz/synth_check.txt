@@ -1,0 +1,8 @@
+
+29. Executing CHECK pass (checking for obvious problems).
+Checking module top...
+Warning: Cell top.grp0.gprs[0]_2__$print_ARGS is an unmapped internal cell of type $print.
+Warning: Cell top.grp0.gprs[1]_2__$print_ARGS is an unmapped internal cell of type $print.
+Warning: Cell top.grp0.gprs[2]_2__$print_ARGS is an unmapped internal cell of type $print.
+Warning: Cell top.grp0.gprs[3]_2__$print_ARGS is an unmapped internal cell of type $print.
+Found and reported 4 problems.

@@ -10,6 +10,24 @@ BUILD_DIR = ./build
 OBJ_DIR = $(BUILD_DIR)/obj_dir
 BIN = $(BUILD_DIR)/$(TOPNAME)
 
+YOSYS_SCRIPT_DIR = /home/d5/software/yosys-sta/
+export PATH := /home/d5/software/oss-cad-suite/bin:$(PATH)
+PROJ_PATH = $(shell pwd)
+SHELL := /bin/bash
+
+O ?= $(PROJ_PATH)/result
+DESIGN ?= top
+SDC_FILE ?= $(PROJ_PATH)/scripts/default.sdc
+RTL_FILES ?= $(shell find $(PROJ_PATH)/vsrc -name "*.v")
+export CLK_FREQ_MHZ ?= 500
+export CLK_PORT_NAME ?= clk
+PDK = icsprout55
+
+RESULT_DIR = $(O)/$(DESIGN)-$(CLK_FREQ_MHZ)MHz
+SCRIPT_DIR = $(YOSYS_SCRIPT_DIR)/scripts
+NETLIST_SYN_V   = $(RESULT_DIR)/$(DESIGN).netlist.v
+TIMING_RPT = $(RESULT_DIR)/$(DESIGN).rpt
+
 default: $(BIN)
 
 $(shell mkdir -p $(BUILD_DIR))
@@ -30,6 +48,13 @@ include $(NVBOARD_HOME)/scripts/nvboard.mk
 # rules for verilator
 INCFLAGS = $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(INCFLAGS) -DTOP_NAME="\"V$(TOPNAME)\""
+
+syn: $(NETLIST_SYN_V)
+$(NETLIST_SYN_V): $(RTL_FILES) $(SCRIPT_DIR)/yosys.tcl
+	mkdir -p $(@D)
+	echo tcl $(SCRIPT_DIR)/yosys.tcl $(DESIGN) $(PDK) \"$(RTL_FILES)\" $@ | yosys -g -l $(@D)/yosys.log -s -
+
+
 
 $(BIN): $(VSRCS) $(CSRCS) $(NVBOARD_ARCHIVE)
 	@rm -rf $(OBJ_DIR)
